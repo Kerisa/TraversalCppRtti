@@ -228,7 +228,9 @@ std::vector<uint32_t> FindAllRttiInPEFile(const vector<uint8_t>& peData)
         auto typeDescRef = FindAllReferenceInMem(findStart, findEnd, typeDesc, true);
         if (!typeDescRef.empty())
         {
-            cout << nameAddr << ": \n";
+            cout << "---------------------------------\n" << nameAddr << ": \n";
+            std::vector<std::string> baseClasses;
+            std::vector<uint32_t> ctorRVA;
             for (auto r : typeDescRef)
             {
                 uint32_t rttiCOLFileOffset = r - findStart - CONTENT_OFFSET(Detail::_s__RTTICompleteObjectLocator, pTypeDescriptor);
@@ -255,9 +257,10 @@ std::vector<uint32_t> FindAllRttiInPEFile(const vector<uint8_t>& peData)
                     uint32_t baseTypeDescFileOffset = Detail::RVAToFileOffset(peData, baseTypeDescVA - imageBase);
                     const char* result_baseTypeName = (const char*)(peData.data() + baseTypeDescFileOffset + CONTENT_OFFSET(Detail::_TypeDescriptor, name));
 
-                    cout << "base: " << result_baseTypeName << ", ";
+                    if (std::find(baseClasses.begin(), baseClasses.end(), result_baseTypeName) == baseClasses.end())
+                        baseClasses.push_back(result_baseTypeName);                    
                 }
-                cout << "\n";
+
                 uint32_t rttiCOLVA = imageBase + Detail::FileOffsetToRVA(peData, rttiCOLFileOffset);
                 auto rttiRefs = FindAllReferenceInMem(findStart, findEnd, rttiCOLVA, false);
                 for (int k = 0; k < rttiRefs.size(); ++k)
@@ -268,14 +271,18 @@ std::vector<uint32_t> FindAllRttiInPEFile(const vector<uint8_t>& peData)
                     for (int kk = 0; kk < vtableRefs.size(); ++kk)
                     {
                         uint32_t result_ctorRVA = Detail::FileOffsetToRVA(peData, vtableRefs[kk] - findStart);
-
-                        cout << "reference in ctors(next instruction): " << hex << result_ctorRVA + sizeof(size_t) << ", ";    // 显示下一条指令的地址
+                        ctorRVA.push_back(result_ctorRVA + sizeof(size_t));    // 显示下一条指令的地址
                     }
-                    cout << "\n";
                 }
-                cout << "\n";
-            }
-        }
+            }   // end for (auto r : typeDescRef)
+            cout << "base classes: ";
+            for (auto& name : baseClasses)
+                cout << name << ", ";
+            cout << "\n\nreference in ctors(next instruction): ";
+            for (auto rva : ctorRVA)
+                cout << hex << rva << ", ";
+            cout << "\n\n";
+        }   // end if (!typeDescRef.empty())
     }
     return vector<uint32_t>();
 }
