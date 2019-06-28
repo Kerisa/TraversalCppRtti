@@ -1,0 +1,7 @@
+/TraversalCppRtti/Debug
+/TraversalCppRtti/Release
+*.ilk
+.vs
+*.user
+/Debug/TraversalCppRtti.exe
+/Debug/TraversalCppRtti.pdb
