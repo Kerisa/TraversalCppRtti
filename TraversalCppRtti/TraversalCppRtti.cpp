@@ -291,12 +291,27 @@ int main(int argc, char** argv)
 {
     if (argc != 2)
     {
-        cout << "usage: TraversalCppRtti.exe <PE file>\n";
+        cout << "usage: WipeRtti.exe <PE file>\n";
         return 0;
     }
 
     vector<uint8_t> fileData = GetFileData(argv[1]);
-    FindAllRttiInPEFile(fileData);
-    cout << "finish\n";
+    const uint32_t findStart = (uint32_t)fileData.data();
+    const uint32_t findEnd = (uint32_t)(fileData.data() + fileData.size());
+    vector<const char*> pos = FindAllReferenceInMem((const char*)findStart, (const char*)findEnd, ".?AV", 4);
+    for (auto p : pos)
+    {
+        p += 5;
+        while (*p) *(char*)p = '\0', ++p;
+    }
+
+    DWORD R;
+    HANDLE hExe = CreateFileA(argv[1], GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    WriteFile(hExe, fileData.data(), fileData.size(), &R, NULL);
+    CloseHandle(hExe);
+
+
+    //FindAllRttiInPEFile(fileData);
+    //cout << "finish\n";
     return 0;
 }
